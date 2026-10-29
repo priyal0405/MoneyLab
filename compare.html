@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fund Comparison · Money Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="disclaimer-bar">Educational only, not investment advice.</div>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo">Money<span>Lab</span></a>
+      <nav class="nav">
+        <a href="index.html">Home</a>
+        <a href="time-machine.html">Time Machine</a>
+        <a href="compare.html" class="active">Compare</a>
+        <a href="rbi-explainer.html">RBI Explainer</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="page-hero">
+      <div class="icon-badge teal">⚖️</div>
+      <h1>Fund <em class="teal">Face-Off</em></h1>
+      <p>Pick two mutual funds and compare their returns, risk and fees side by side, using live NAV data.</p>
+    </section>
+
+    <section class="pickers">
+      <div class="panel fund-picker a" data-slot="a">
+        <span class="slot-tag">Fund A</span>
+        <div class="picked"></div>
+        <input class="search" type="text" placeholder="🔍 Type a fund name, e.g. hdfc mid cap" autocomplete="off">
+        <ul class="suggestions"></ul>
+        <p class="quick-label">or tap a popular one:</p>
+        <div class="quick-picks"></div>
+        <label class="expense">
+          <span>Expense ratio <a href="#what-is-er" class="q">?</a> <em>(optional)</em></span>
+          <span><input type="number" id="er-a" step="0.01" min="0" max="3" placeholder="–">%</span>
+        </label>
+      </div>
+
+      <button type="button" class="vs" id="swap" title="Swap the two funds">VS<small>⇄</small></button>
+
+      <div class="panel fund-picker b" data-slot="b">
+        <span class="slot-tag">Fund B</span>
+        <div class="picked"></div>
+        <input class="search" type="text" placeholder="🔍 Type a fund name, e.g. sbi small" autocomplete="off">
+        <ul class="suggestions"></ul>
+        <p class="quick-label">or tap a popular one:</p>
+        <div class="quick-picks"></div>
+        <label class="expense">
+          <span>Expense ratio <a href="#what-is-er" class="q">?</a> <em>(optional)</em></span>
+          <span><input type="number" id="er-b" step="0.01" min="0" max="3" placeholder="–">%</span>
+        </label>
+      </div>
+    </section>
+
+    <p class="hint">💡 We've started you off with an index fund vs. an active fund. Swap in any fund you like. The expense ratio is on each fund's factsheet. "Direct" plans charge lower fees than "Regular" plans.</p>
+
+    <section class="panel" id="compare-empty">
+      <p class="empty center">Loading funds…</p>
+    </section>
+
+    <section id="compare-results" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <h2>If you had put in ₹10,000…</h2>
+          <div class="view-toggle period-toggle">
+            <button data-years="1">1Y</button>
+            <button data-years="3" class="active">3Y</button>
+            <button data-years="5">5Y</button>
+            <button data-years="max">Max</button>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="compare-chart"></canvas></div>
+        <p id="chart-note" class="chart-note"></p>
+      </div>
+
+      <div class="panel">
+        <h2>Head to head</h2>
+        <div class="table-wrap">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="a" id="name-a"></th>
+                <th class="b" id="name-b"></th>
+              </tr>
+            </thead>
+            <tbody id="compare-body"></tbody>
+          </table>
+        </div>
+        <p class="legend-note">Highlighted = better on that measure. No single row decides which fund is "best". A fund with higher returns often comes with bigger ups and downs.</p>
+      </div>
+    </section>
+
+    <section class="panel explainer" id="what-is-er">
+      <h2>💸 What is an expense ratio?</h2>
+      <p class="lead">It's the <strong>yearly fee</strong> a mutual fund charges to manage your money. It's shown as a percentage of what you've invested.</p>
+
+      <div class="er-grid">
+        <div class="er-card">
+          <span class="er-emoji">🧾</span>
+          <h3>How it works</h3>
+          <p>With a <strong>1%</strong> expense ratio, a fund takes about <strong>₹100 a year</strong> from every ₹10,000 you've invested. It pays the fund manager, research, admin and, in Regular plans, the agent who sold you the fund.</p>
+        </div>
+        <div class="er-card">
+          <span class="er-emoji">🫥</span>
+          <h3>You never see a bill</h3>
+          <p>The fee is taken out a little each day, before the fund's price (NAV) is published. You won't get a separate charge. Your returns are just slightly lower. <strong>The returns on this page already have the fee taken out.</strong></p>
+        </div>
+        <div class="er-card">
+          <span class="er-emoji">🐢</span>
+          <h3>Small % = big money over time</h3>
+          <p>Put in ₹1 lakh for 20 years. If the market earns 12% a year:<br>
+            at <strong>0.2%</strong> fee → about <strong>₹9.3 lakh</strong><br>
+            at <strong>1.5%</strong> fee → about <strong>₹7.4 lakh</strong><br>
+            That 1.3% difference costs you about <strong>₹1.9 lakh</strong>.</p>
+        </div>
+      </div>
+
+      <div class="er-tips">
+        <p><strong>Rough guide:</strong> index funds often charge 0.1–0.5%, and actively managed funds 0.5–2%. Lower isn't automatically better, because a pricier fund can still earn more. But you should know what you're paying.</p>
+        <p><strong>Direct vs Regular:</strong> it's the same fund. A Regular plan costs more because it includes a commission for the agent or app that sold it. Over many years, a Direct plan usually leaves you with more money.</p>
+        <p><strong>Where to find it:</strong> the fund's monthly factsheet, the fund company's website, or apps like Groww and Kuvera. Look for "TER" (Total Expense Ratio). Type it in the boxes above to see it in the comparison.</p>
+      </div>
+    </section>
+
+    <section class="panel notes">
+      <h2>How we worked this out</h2>
+      <ul>
+        <li><strong>Data:</strong> daily NAVs from <a href="https://www.mfapi.in" target="_blank" rel="noopener">mfapi.in</a>, a free service based on AMFI data.</li>
+        <li><strong>Returns:</strong> 3- and 5-year returns are yearly averages (CAGR), calculated from NAVs. They're blank if the fund is too young.</li>
+        <li><strong>Volatility:</strong> how much the daily NAV moved over the last 3 years, scaled to a year.</li>
+        <li><strong>Worst fall:</strong> the largest drop from a peak to a low in the last 5 years.</li>
+        <li>Past performance doesn't guarantee future results. This is <strong>not investment advice</strong>.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      Money Lab is for learning only and is not investment advice. Past returns do not guarantee future results. Talk to a SEBI-registered adviser before you invest.
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="js/funds.js"></script>
+  <script src="js/compare.js"></script>
+</body>
+</html>

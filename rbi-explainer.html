@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RBI Policy Explainer · Money Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="disclaimer-bar">Educational only, not investment advice.</div>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo">Money<span>Lab</span></a>
+      <nav class="nav">
+        <a href="index.html">Home</a>
+        <a href="time-machine.html">Time Machine</a>
+        <a href="compare.html">Compare</a>
+        <a href="rbi-explainer.html" class="active">RBI Explainer</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="page-hero">
+      <div class="icon-badge orange">🏦</div>
+      <h1>RBI Policy <em class="orange">Explainer</em></h1>
+      <p>Paste any RBI headline or announcement. Find out in plain words what it means for your loans, savings and the prices you pay.</p>
+    </section>
+
+    <section class="panel explain-box">
+      <div class="explain-head">
+        <label for="news">Paste a headline or news paragraph</label>
+        <div class="view-toggle lang-toggle">
+          <button data-lang="en" class="active">English</button>
+          <button data-lang="hi">हिंदी</button>
+        </div>
+      </div>
+      <textarea id="news" rows="4" maxlength="4000" placeholder="e.g. RBI keeps repo rate unchanged at 5.5%, changes stance to accommodative…"></textarea>
+      <div class="explain-actions">
+        <span id="char-count" class="muted small"></span>
+        <button id="explain" class="btn btn-orange">Explain it ✨</button>
+      </div>
+      <div id="examples" class="quick-picks examples"></div>
+    </section>
+
+    <p id="explain-status" class="explain-status" hidden></p>
+
+    <section class="rbi-recap">
+      <h2 class="section-title">📅 RBI in 2025–26: the big picture</h2>
+      <div class="stat-grid">
+        <div class="stat-tile cut">
+          <span class="stat-num">−1.25%</span>
+          <span class="stat-label">Repo rate cut during 2025<br><small>6.50% → 5.25%, in four cuts</small></span>
+        </div>
+        <div class="stat-tile crr">
+          <span class="stat-num">4% → 3%</span>
+          <span class="stat-label">CRR cut (June 2025)<br><small>≈ ₹2.5 lakh crore freed for lending</small></span>
+        </div>
+        <div class="stat-tile low">
+          <span class="stat-num">0.25%</span>
+          <span class="stat-label">Record-low inflation<br><small>October 2025</small></span>
+        </div>
+        <div class="stat-tile hold">
+          <span class="stat-num">5.25%</span>
+          <span class="stat-label">On hold since Dec 2025<br><small>4 meetings in a row, as oil prices push inflation up in 2026</small></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Repo rate, Jan 2025 – Sep 2026</h2>
+          <span class="muted small">Each step down = a rate cut</span>
+        </div>
+        <div class="chart-wrap repo-chart-wrap"><canvas id="repo-chart"></canvas></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Every major announcement</h2>
+          <div class="quick-picks timeline-filters" id="timeline-filters">
+            <button type="button" data-filter="all" class="active">All</button>
+            <button type="button" data-filter="major">⭐ Major</button>
+            <button type="button" data-filter="cut">Rate cuts</button>
+            <button type="button" data-filter="hold">On hold</button>
+            <button type="button" data-filter="liquidity">Cash boosts</button>
+            <button type="button" data-filter="inflation">Inflation</button>
+          </div>
+        </div>
+        <p class="muted small">Tap <strong>Explain →</strong> on any announcement to open a step-by-step explanation of what it meant for loans, savings and prices, in English or हिंदी.</p>
+        <div id="timeline" class="timeline"></div>
+        <p class="muted small sources">Sources: RBI policy statements as reported by Business Standard, Upstox, Forbes India, Free Press Journal, Business Today and others. There was no RBI policy meeting in September 2026. Figures are rounded; check rbi.org.in for official numbers.</p>
+      </div>
+    </section>
+
+    <section class="panel basics">
+      <h2>🧭 How an RBI decision reaches your wallet</h2>
+      <div class="flow">
+        <div class="flow-step"><span>🏛️</span><strong>RBI changes the repo rate</strong><small>The rate at which it lends to banks</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><span>🏦</span><strong>Banks' costs change</strong><small>Borrowing money gets cheaper or costlier for them</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><span>💳</span><strong>Loan & FD rates move</strong><small>EMIs and deposit rates follow, usually over a few months</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><span>🛒</span><strong>Spending & prices adjust</strong><small>Cheaper loans → more spending; costlier loans → prices cool</small></div>
+      </div>
+      <p class="muted small">In short: <strong>rates down</strong> → cheaper loans, lower FD returns, more spending. <strong>Rates up</strong> → costlier loans, better FD returns, slower price rises.</p>
+    </section>
+  </main>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Explanation">
+      <button type="button" class="modal-close" aria-label="Close">×</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container">
+      Money Lab is for learning only and is not investment advice. AI explanations may contain mistakes. Always check the RBI's official announcement.
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/rbi-timeline.js"></script>
+  <script src="js/rbi-quick.js"></script>
+  <script src="js/rbi-explainer.js"></script>
+</body>
+</html>
