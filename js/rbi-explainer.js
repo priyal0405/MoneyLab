@@ -52,6 +52,12 @@ const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", 
 const formatDate = (iso) => new Date(iso + "T00:00:00").toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric" });
 
 // ---------- Paste box ----------
+if (!DEMO) {
+  document.getElementById("hero-text").textContent = "Ask about any RBI policy, in a few words or a full headline. We read RBI's own website live and explain it in plain words: what it is, who it affects, and what it means for your loans, savings and prices.";
+  document.getElementById("news-label").textContent = "Ask about any RBI policy";
+  newsInput.placeholder = "e.g. gold loan rules · KYC for students · latest repo rate decision · digital lending apps";
+}
+
 examplesBox.innerHTML = RBI_TIMELINE.filter((e) => e.major).map((e) =>
   `<button type="button" data-date="${e.date}">⭐ ${formatDate(e.date)}</button>`).join("");
 examplesBox.addEventListener("click", (e) => {
@@ -81,9 +87,12 @@ function setLanguage(lang) {
 }
 langButtons.forEach((btn) => btn.addEventListener("click", () => setLanguage(btn.dataset.lang)));
 
+const liveCache = new Map();   // "language|question" → answer, so switching language back is instant
+
 async function explain(text = newsInput.value.trim()) {
-  if (text.length < 10) {
-    showStatus("Paste a headline or a few lines about an RBI decision first.", "warn");
+  if (text.length < (DEMO ? 10 : 3)) {
+    showStatus(DEMO ? "Paste a headline or a few lines about an RBI decision first."
+      : "Type a few words about the RBI policy you're looking for, e.g. \"gold loan rules\".", "warn");
     return;
   }
   statusBox.hidden = true;
@@ -105,24 +114,36 @@ async function explain(text = newsInput.value.trim()) {
   }
 
   shown = { kind: "text", text };
+  const key = `${language}|${text}`;
+  if (liveCache.has(key)) return openModal(liveHtml(liveCache.get(key), text));
+
   openModal(loadingHtml(text));
   explainBtn.disabled = true;
+  const lang = language;
 
   try {
-    const res = await fetch(EXPLAINER_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, language })
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.result) throw new Error(data.error || "Something went wrong. Please try again.");
-    if (shown && shown.text === text) modalBody.innerHTML = modalHtml(data.result, true, { headline: text });
+    const data = await liveAnswer(text, lang, (step) => showProgress(text, lang, step));
+    liveCache.set(`${lang}|${text}`, data);
+    // Only show it if the visitor is still waiting for this question in this language.
+    if (shown && shown.text === text && language === lang) {
+      modalBody.innerHTML = liveHtml(data, text);
+      modal.querySelector(".modal-card").scrollTop = 0;
+    }
   } catch (err) {
-    closeModal();
+    if (shown && shown.text === text) closeModal();
     showStatus(err.message === "Failed to fetch" ? "Couldn't reach the explainer. Check your internet and try again." : err.message, "warn");
   } finally {
     explainBtn.disabled = false;
   }
+}
+
+// Ticks off the loading steps as the live search moves along.
+function showProgress(text, lang, step) {
+  if (!shown || shown.text !== text || language !== lang) return;
+  modalBody.querySelectorAll(".progress-steps li").forEach((li, i) => {
+    li.classList.toggle("done", i < step);
+    li.classList.toggle("active", i === step);
+  });
 }
 
 function showStatus(msg, kind) {
@@ -160,6 +181,12 @@ modal.addEventListener("click", (e) => {
   if (e.target === modal || e.target.closest(".modal-close") || e.target.closest(".modal-done")) closeModal();
   const langBtn = e.target.closest(".modal-lang button");
   if (langBtn) setLanguage(langBtn.dataset.lang);
+  const tryBtn = e.target.closest("button[data-query]");
+  if (tryBtn) {
+    newsInput.value = tryBtn.dataset.query;
+    updateCount();
+    explain(tryBtn.dataset.query);
+  }
 });
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !modal.hidden) closeModal();
@@ -172,7 +199,40 @@ function langSwitchHtml() {
   </div>`;
 }
 
+const LIVE = {
+  en: {
+    steps: ["Checking RBI's Master Directions, press releases and notifications live", "Reading the official RBI document", "Writing the explanation"],
+    wait: "This usually takes 5–20 seconds.",
+    excerptNote: "📄 Our free AI helper isn't available right now. It has a daily limit that resets at 5:30 am IST. So here are the most relevant parts in RBI's own words. Open the source for the full document.",
+    excerptTitle: "What RBI's document says",
+    kinds: { master_direction: "Master Direction", press_release: "Press release", notification: "Notification", rbi_search: "RBI website" },
+    source: "Source", checked: "Read live from rbi.org.in", pdf: "PDF", partial: "This document is long, so only its first part was read.",
+    what: "What it is", why: "Why RBI did this",
+    who: "Who it affects", points: "Key points", notFound: "Exact policy not found",
+    notFoundText: "We searched RBI's Master Directions, latest press releases and notifications, and the rest of rbi.org.in, but couldn't find a policy that exactly matches. Try changing your keywords.",
+    similar: "Similar RBI policies", alsoSee: "Related on RBI's website", tryThis: "Explain this →", open: "Open on RBI ↗",
+    noSimilar: "No close matches either. Try a broader term like \"KYC\", \"repo rate\", \"gold loan\" or \"UPI\".",
+    notRelevant: "This doesn't look like a question about RBI or Indian banking rules. Try something like \"repo rate\", \"KYC rules\" or \"digital lending\"."
+  },
+  hi: {
+    steps: ["RBI के Master Directions, प्रेस रिलीज़ और नोटिफ़िकेशन अभी देखे जा रहे हैं", "RBI का आधिकारिक दस्तावेज़ पढ़ा जा रहा है", "व्याख्या लिखी जा रही है"],
+    wait: "इसमें आम तौर पर 5–20 सेकंड लगते हैं।",
+    excerptNote: "📄 हमारा मुफ़्त AI सहायक अभी उपलब्ध नहीं है। इसकी रोज़ की एक सीमा है, जो सुबह 5:30 बजे IST फिर शुरू होती है। इसलिए यहाँ RBI के अपने शब्दों में सबसे काम के हिस्से हैं (अंग्रेज़ी में)। पूरा दस्तावेज़ स्रोत पर देखें।",
+    excerptTitle: "RBI के दस्तावेज़ में क्या लिखा है",
+    kinds: { master_direction: "Master Direction", press_release: "प्रेस रिलीज़", notification: "नोटिफ़िकेशन", rbi_search: "RBI वेबसाइट" },
+    source: "स्रोत", checked: "अभी rbi.org.in से पढ़ा गया", pdf: "PDF", partial: "यह दस्तावेज़ लंबा है, इसलिए सिर्फ़ इसका पहला हिस्सा पढ़ा गया।",
+    what: "यह क्या है", why: "RBI ने ऐसा क्यों किया",
+    who: "किन पर असर", points: "मुख्य बातें", notFound: "ठीक यही नीति नहीं मिली",
+    notFoundText: "हमने RBI के Master Directions, ताज़ा प्रेस रिलीज़ और नोटिफ़िकेशन, और बाकी rbi.org.in में खोजा, पर ठीक मेल खाती नीति नहीं मिली। कृपया दूसरे शब्दों से कोशिश करें।",
+    similar: "मिलती-जुलती RBI नीतियाँ", alsoSee: "RBI वेबसाइट पर इससे जुड़ा", tryThis: "समझें →", open: "RBI पर खोलें ↗",
+    noSimilar: "कोई मिलती-जुलती नीति भी नहीं मिली। \"KYC\", \"repo rate\", \"gold loan\" या \"UPI\" जैसे आम शब्द आज़माएँ।",
+    notRelevant: "यह RBI या भारतीय बैंकिंग नियमों से जुड़ा सवाल नहीं लगता। \"repo rate\", \"KYC rules\" या \"digital lending\" जैसा कुछ आज़माएँ।"
+  }
+};
+
 function loadingHtml(text) {
+  if (DEMO) return "";
+  const T = LIVE[language];
   return `
     <header class="modal-head">
       <div class="modal-head-top end">${langSwitchHtml()}</div>
@@ -180,7 +240,121 @@ function loadingHtml(text) {
     </header>
     <div class="modal-loading">
       <div class="spinner"></div>
-      <p>${language === "hi" ? "AI पढ़ रहा है… इसमें 10–20 सेकंड लग सकते हैं।" : "The AI is reading it… this can take 10–20 seconds."}</p>
+      <ol class="progress-steps">${T.steps.map((s, i) => `<li class="${i === 0 ? "active" : ""}">${s}</li>`).join("")}</ol>
+      <p class="small">${T.wait}</p>
+    </div>`;
+}
+
+const safeUrl = (u) => (/^https:\/\/([a-z0-9-]+\.)*rbi\.org\.in\//i.test(u) ? u : "https://www.rbi.org.in/");
+const checkedTime = (iso) => new Date(iso).toLocaleString(language === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+
+function similarListHtml(items) {
+  const T = LIVE[language];
+  return `<ul class="similar-list">${items.map((s) => `
+    <li>
+      <div>
+        <span class="similar-kind">${T.kinds[s.kind] || s.kind}${s.date ? ` · ${escapeHtml(s.date)}` : ""}</span>
+        <strong>${escapeHtml(s.title)}</strong>
+      </div>
+      <div class="similar-actions">
+        <button type="button" class="t-btn" data-query="${escapeHtml(s.title)}">${T.tryThis}</button>
+        <a href="${escapeHtml(safeUrl(s.url))}" target="_blank" rel="noopener">${T.open}</a>
+      </div>
+    </li>`).join("")}</ul>`;
+}
+
+// data: the Worker's answer { status, source, similar, result, checked_at }
+function liveHtml(data, text) {
+  const L = LABELS[language];
+  const T = LIVE[language];
+  const foot = `
+    <div class="modal-foot">
+      <span class="muted small">${L.notAdvice}</span>
+      <button type="button" class="btn btn-orange modal-done">${L.close}</button>
+    </div>`;
+  const plainHead = (title, sub = "") => `
+    <header class="modal-head">
+      <div class="modal-head-top end">${langSwitchHtml()}</div>
+      <h2>${escapeHtml(title)}</h2>
+      ${sub ? `<p class="modal-sub">"${escapeHtml(sub)}"</p>` : ""}
+    </header>`;
+
+  if (data.status === "not_relevant") {
+    return `${plainHead(text)}<div class="modal-content"><p>${T.notRelevant}</p>${foot}</div>`;
+  }
+  if (data.status === "not_found") {
+    return `${plainHead(text)}
+      <div class="modal-content">
+        <div class="not-found">
+          <h3>🔍 ${T.notFound}</h3>
+          <p>${T.notFoundText}</p>
+          <p class="muted small">${T.checked}: ${checkedTime(data.checked_at)}</p>
+        </div>
+        ${data.similar && data.similar.length ? `<h3>${T.similar}</h3>${similarListHtml(data.similar)}` : `<p class="muted">${T.noSimilar}</p>`}
+        ${foot}
+      </div>`;
+  }
+
+  const s = data.source;
+  const sourceBox = `
+      <div class="source-box">
+        <span class="source-live">🔗 ${T.checked} · ${checkedTime(data.checked_at)}</span>
+        <div><strong>${T.source}:</strong> ${T.kinds[s.kind] || s.kind}${s.date ? `, ${escapeHtml(s.date)}` : ""}</div>
+        <a href="${escapeHtml(safeUrl(s.url))}" target="_blank" rel="noopener">${escapeHtml(s.title)} ↗</a>
+        ${s.pdf_url ? ` · <a href="${escapeHtml(safeUrl(s.pdf_url))}" target="_blank" rel="noopener">${T.pdf} ↗</a>` : ""}
+        ${s.partial ? `<p class="muted small">${T.partial}</p>` : ""}
+      </div>`;
+  const related = data.similar && data.similar.length ? `<h3>${T.alsoSee}</h3>${similarListHtml(data.similar)}` : "";
+
+  if (data.mode === "excerpt") {
+    return `
+    ${plainHead(s.title, text)}
+    <div class="modal-content">
+      ${sourceBox}
+      <div class="ai-badge ready">${T.excerptNote}</div>
+      <h3>${T.excerptTitle}</h3>
+      <div class="excerpts">${data.excerpts.map((p) => `<blockquote>${escapeHtml(p)}</blockquote>`).join("")}</div>
+      ${related}
+      ${foot}
+    </div>`;
+  }
+
+  const r = data.result;
+  const impactCard = (key) => {
+    const { direction, explanation } = r[key];
+    return `
+      <div class="impact-card ${key}">
+        <div class="impact-top">
+          <h3>${L[key]}</h3>
+          <span class="arrow ${direction}">${ARROWS[direction] || "?"}</span>
+        </div>
+        <span class="impact-dir ${direction}">${L[direction] || direction}</span>
+        <p>${escapeHtml(explanation)}</p>
+      </div>`;
+  };
+  const impacts = ["loans", "savings", "prices"].filter((k) => r[k] && r[k].direction !== "not_affected");
+  const steps = [
+    [T.what, `<p class="big">${escapeHtml(r.summary)}</p>`],
+    [T.why, `<p>${escapeHtml(r.why)}</p>`],
+    [T.who, `<p>${escapeHtml(r.who_it_affects)}</p>`],
+    r.key_points && r.key_points.length ? [T.points, `<ul class="key-points">${r.key_points.map((p) => `<li>${escapeHtml(p)}</li>`).join("")}</ul>`] : null,
+    impacts.length ? [L.you, `<div class="impact-grid">${impacts.map(impactCard).join("")}</div>`] : null,
+    r.key_terms && r.key_terms.length ? [L.terms, `<dl class="terms">${r.key_terms.map((t) => `<div><dt>${escapeHtml(t.term)}</dt><dd>${escapeHtml(t.meaning)}</dd></div>`).join("")}</dl>`] : null
+  ].filter(Boolean);
+
+  return `
+    ${plainHead(r.plain_title || s.title, text)}
+    <div class="modal-content">
+      ${sourceBox}
+      <div class="ai-badge">${L.ai}</div>
+      ${steps.map(([title, body], i) => `
+        <section class="step">
+          <div class="step-num">${i + 1}</div>
+          <div class="step-body"><h3>${title}</h3>${body}</div>
+        </section>`).join("")}
+      ${r.takeaway ? `<div class="takeaway"><strong>💡 ${L.remember}:</strong> ${escapeHtml(r.takeaway)}</div>` : ""}
+      ${related}
+      ${foot}
     </div>`;
 }
 
